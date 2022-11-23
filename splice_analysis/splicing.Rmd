@@ -1,0 +1,971 @@
+### Valid data input 
+```{r}
+ISJCfilter=function(file){
+  subset(file,apply(matrix(as.numeric(unlist(strsplit(as.character(file$SJC_SAMPLE_1),','))),ncol=3,byrow=T),1,mean) >= 2 &
+           apply(matrix(as.numeric(unlist(strsplit(as.character(file$IJC_SAMPLE_1),','))),ncol=3,byrow=T),1,mean) >= 2 &
+           apply(matrix(as.numeric(unlist(strsplit(as.character(file$IJC_SAMPLE_2),','))),ncol=3,byrow=T),1,mean) >= 2 &
+           apply(matrix(as.numeric(unlist(strsplit(as.character(file$SJC_SAMPLE_2),','))),ncol=3,byrow=T),1,mean) >= 2
+                              
+  )
+}
+
+for (i in c("F_D","N_F","N_D","NE_N","NE_F","NE_D")) {
+  for (j in c("SE","RI","MXE","A3SS","A5SS")) {
+    assign(str_c(i,"_",j), ISJCfilter(read.table(str_c("mypath/bee/result/",i,"/",j,".MATS.JC.txt"),header=T,sep = "\t")))
+  }
+}
+```
+
+### Differnetial splicing events filter
+```{r}
+PInclevelfilter=function(file){subset(file, file$FDR<0.05 & abs(file$IncLevelDifference)>0.2) }
+F_D_A3SS_Differ=PInclevelfilter(F_D_A3SS)
+F_D_A5SS_Differ=PInclevelfilter(F_D_A5SS)
+F_D_MXE_Differ=PInclevelfilter(F_D_MXE)
+F_D_SE_Differ=PInclevelfilter(F_D_SE)
+F_D_RI_Differ=PInclevelfilter(F_D_RI)
+N_D_A3SS_Differ=PInclevelfilter(N_D_A3SS)
+N_D_A5SS_Differ=PInclevelfilter(N_D_A5SS)
+N_D_MXE_Differ=PInclevelfilter(N_D_MXE)
+N_D_SE_Differ=PInclevelfilter(N_D_SE)
+N_D_RI_Differ=PInclevelfilter(N_D_RI)
+N_F_A3SS_Differ=PInclevelfilter(N_F_A3SS)
+N_F_A5SS_Differ=PInclevelfilter(N_F_A5SS)
+N_F_MXE_Differ=PInclevelfilter(N_F_MXE)
+N_F_SE_Differ=PInclevelfilter(N_F_SE)
+N_F_RI_Differ=PInclevelfilter(N_F_RI)
+NE_N_A3SS_Differ=PInclevelfilter(NE_N_A3SS)
+NE_N_A5SS_Differ=PInclevelfilter(NE_N_A5SS)
+NE_N_MXE_Differ=PInclevelfilter(NE_N_MXE)
+NE_N_SE_Differ=PInclevelfilter(NE_N_SE)
+NE_N_RI_Differ=PInclevelfilter(NE_N_RI)
+NE_D_A3SS_Differ=PInclevelfilter(NE_D_A3SS)
+NE_D_A5SS_Differ=PInclevelfilter(NE_D_A5SS)
+NE_D_MXE_Differ=PInclevelfilter(NE_D_MXE)
+NE_D_SE_Differ=PInclevelfilter(NE_D_SE)
+NE_D_RI_Differ=PInclevelfilter(NE_D_RI)
+NE_F_A3SS_Differ=PInclevelfilter(NE_F_A3SS)
+NE_F_A5SS_Differ=PInclevelfilter(NE_F_A5SS)
+NE_F_MXE_Differ=PInclevelfilter(NE_F_MXE)
+NE_F_SE_Differ=PInclevelfilter(NE_F_SE)
+NE_F_RI_Differ=PInclevelfilter(NE_F_RI)
+
+```
+
+### Numbers of differnetial splicing events(Figure 3B)
+
+## Four comparison groups
+```{r}
+total_number=data.frame(nrow(F_D_SE_Differ),nrow(N_D_SE_Differ),nrow(N_F_SE_Differ),nrow(NEOLD_SE_Differ))
+total_number[2,]=data.frame(nrow(F_D_RI_Differ),nrow(N_D_RI_Differ),nrow(N_F_RI_Differ),nrow(NEOLD_RI_Differ))
+total_number[3,]=data.frame(nrow(F_D_MXE_Differ),nrow(N_D_MXE_Differ),nrow(N_F_MXE_Differ),nrow(NEOLD_MXE_Differ))
+total_number[4,]=data.frame(nrow(F_D_A3SS_Differ),nrow(N_D_A3SS_Differ),nrow(N_F_A3SS_Differ),nrow(NEOLD_A3SS_Differ))
+total_number[5,]=data.frame(nrow(F_D_A5SS_Differ),nrow(N_D_A5SS_Differ),nrow(N_F_A5SS_Differ),nrow(NEOLD_A5SS_Differ))
+total_number$name=c("SE","RI","MXE","A3SS","A5SS")
+colnames(total_number)=c("F-D","N-D","N-F","NE-N/F/D","splicingtype")
+total_number<-melt(total_number,id.vars='splicingtype')
+total_number$variable=factor(total_number$variable,levels=rev(c("F-D","N-D","N-F","NE-N/F/D")))
+
+pdf("mypath/bee/figure/figure1overall/B_fourgroupnumber.pdf")
+ggplot(total_number,aes(variable,value,fill=splicingtype))+ geom_bar(stat="identity",position="stack", color="black", width=0.7,size=0.25)+labs(x = "group",y = "splicing events number")+theme_bw()+theme(panel.grid=element_blank())
+dev.off()
+
+```
+
+### Make gene excel with 4 division's PSI(inclevel) value
+## SE
+```{r}
+ID=rbind(F_D_SE_Differ[,c(2,6:11)],
+         rbind(N_F_SE_Differ[,c(2,6:11)],
+               N_D_SE_Differ[,c(2,6:11)]))
+
+ID=rbind(ID,rbind(NE_N_SE_Differ[,c(2,6:11)],
+                  rbind(NE_F_SE_Differ[,c(2,6:11)],
+                        NE_D_SE_Differ[,c(2,6:11)])))
+
+ID=unique(ID)
+
+ID_merge=base::merge(ID,NE_N_SE,by=colnames(ID),sort = F)
+ID_merge=base::merge(ID_merge,NE_F_SE,by=colnames(ID),sort = F)
+ID_merge=base::merge(ID_merge,NE_D_SE,by=colnames(ID),sort = F)
+
+ID_merge[,1] = make.names(ID_merge[,1],TRUE)
+
+pre_heatmap=data.frame(
+  row.names = make.names(ID_merge[,1],TRUE),
+  geneID=ID_merge$GeneID,
+  NE_level=ID_merge$IncLevel1.x,N_level=ID_merge$IncLevel2.x,
+  F_level=ID_merge$IncLevel2.y,D_level=ID_merge$IncLevel2)
+pre_heatmap=cbind(pre_heatmap,ID_merge[,2:7])
+
+pre_heatmap=unique(pre_heatmap)
+write.csv(pre_heatmap,"mypath/bee/change_new/changeoverall.csv")
+```
+## MXE
+```{r}
+  ID=rbind(F_D_MXE_Differ[,c(2,6:13)],
+           rbind(N_F_MXE_Differ[,c(2,6:13)],
+                 N_D_MXE_Differ[,c(2,6:13)]))
+
+  ID=rbind(ID,rbind(NE_N_MXE_Differ[,c(2,6:13)],
+                  rbind(NE_F_MXE_Differ[,c(2,6:13)],
+                        NE_D_MXE_Differ[,c(2,6:13)])))
+  ID=unique(ID)
+  ID_merge=base::merge(ID,NE_N_MXE,by=colnames(ID),sort = F)
+  ID_merge=base::merge(ID_merge,NE_F_MXE,by=colnames(ID),sort = F)
+  ID_merge=base::merge(ID_merge,NE_D_MXE,by=colnames(ID),sort = F)
+  
+ ID_merge[,1] = make.names(ID_merge[,1],TRUE)
+
+ pre_heatmap=data.frame(
+    row.names = make.names(ID_merge[,1],TRUE),
+    geneID=ID_merge$GeneID,
+    NE_level=ID_merge$IncLevel1.x,N_level=ID_merge$IncLevel2.x,
+    F_level=ID_merge$IncLevel2.y,D_level=ID_merge$IncLevel2)
+  pre_heatmap=cbind(pre_heatmap,ID_merge[,2:9])
+
+  pre_heatmap=unique(pre_heatmap)
+  write.csv(pre_heatmap,"mypath/bee/change_new/changeoverallMXE.csv")
+  
+```
+## RI
+```{r}
+ID=rbind(F_D_RI_Differ[,c(2,6:11)],
+         rbind(N_F_RI_Differ[,c(2,6:11)],
+               N_D_RI_Differ[,c(2,6:11)]))
+ID=rbind(ID,rbind(NE_N_RI_Differ[,c(2,6:11)],
+                  rbind(NE_F_RI_Differ[,c(2,6:11)],
+                        NE_D_RI_Differ[,c(2,6:11)])))
+ID=unique(ID)
+
+ID_merge=base::merge(ID,NE_N_RI,by=colnames(ID),sort = F)
+ID_merge=base::merge(ID_merge,NE_F_RI,by=colnames(ID),sort = F)
+ID_merge=base::merge(ID_merge,NE_D_RI,by=colnames(ID),sort = F)
+
+ID_merge[,1] = make.names(ID_merge[,1],TRUE)
+
+pre_heatmap=data.frame(
+  row.names = make.names(ID_merge[,1],TRUE),
+  geneID=ID_merge$GeneID,
+  NE_level=ID_merge$IncLevel1.x,N_level=ID_merge$IncLevel2.x,
+  F_level=ID_merge$IncLevel2.y,D_level=ID_merge$IncLevel2
+)
+pre_heatmap=cbind(pre_heatmap,ID_merge[,2:7])
+
+pre_heatmap=unique(pre_heatmap)
+write.csv(pre_heatmap,"mypath/bee/change_new/changeoverallRI.csv")
+```
+## A3SS
+```{r}
+ID=rbind(F_D_A3SS_Differ[,c(2,6:11)],
+         rbind(N_F_A3SS_Differ[,c(2,6:11)],
+               N_D_A3SS_Differ[,c(2,6:11)]))
+ID=rbind(ID,rbind(NE_N_A3SS_Differ[,c(2,6:11)],
+                  rbind(NE_F_A3SS_Differ[,c(2,6:11)],
+                        NE_D_A3SS_Differ[,c(2,6:11)])))
+ID=unique(ID)
+
+ID_merge=base::merge(ID,NE_N_A3SS,by=colnames(ID),sort = F)
+ID_merge=base::merge(ID_merge,NE_F_A3SS,by=colnames(ID),sort = F)
+ID_merge=base::merge(ID_merge,NE_D_A3SS,by=colnames(ID),sort = F)
+
+ID_merge[,1] = make.names(ID_merge[,1],TRUE)
+
+pre_heatmap=data.frame(
+  row.names = make.names(ID_merge[,1],TRUE),
+  geneID=ID_merge$GeneID,
+  NE_level=ID_merge$IncLevel1.x,N_level=ID_merge$IncLevel2.x,
+  F_level=ID_merge$IncLevel2.y,D_level=ID_merge$IncLevel2
+)
+pre_heatmap=cbind(pre_heatmap,ID_merge[,2:7])
+
+pre_heatmap=unique(pre_heatmap)
+write.csv(pre_heatmap,"mypath/bee/change_new/changeoverallA3SS.csv")
+```
+## A5SS
+```{r}
+ID=rbind(F_D_A5SS_Differ[,c(2,6:11)],
+         rbind(N_F_A5SS_Differ[,c(2,6:11)],
+               N_D_A5SS_Differ[,c(2,6:11)]))
+ID=rbind(ID,rbind(NE_N_A5SS_Differ[,c(2,6:11)],
+                  rbind(NE_F_A5SS_Differ[,c(2,6:11)],
+                        NE_D_A5SS_Differ[,c(2,6:11)])))
+ID=unique(ID)
+
+ID_merge=base::merge(ID,NE_N_A5SS,by=colnames(ID),sort = F)
+ID_merge=base::merge(ID_merge,NE_F_A5SS,by=colnames(ID),sort = F)
+ID_merge=base::merge(ID_merge,NE_D_A5SS,by=colnames(ID),sort = F)
+
+ID_merge[,1] = make.names(ID_merge[,1],TRUE)
+
+pre_heatmap=data.frame(
+  row.names = make.names(ID_merge[,1],TRUE),
+  geneID=ID_merge$GeneID,
+  NE_level=ID_merge$IncLevel1.x,N_level=ID_merge$IncLevel2.x,
+  F_level=ID_merge$IncLevel2.y,D_level=ID_merge$IncLevel2
+)
+pre_heatmap=cbind(pre_heatmap,ID_merge[,2:7])
+pre_heatmap=unique(pre_heatmap)
+write.csv(pre_heatmap,"mypath/bee/change_new/changeoverallA5SS.csv")
+```
+
+### Heatmap of all splicing events(Figure 3A)
+## SE
+```{r}
+changeoverall=read.csv("mypath/bee/change_new/changeoverall_v3.csv")
+changeoverall=changeoverall[-1,-1]
+change_division_SE=data.frame(geneID=changeoverall$geneID,
+                                NE=apply(changeoverall[,2:4],1,mean),
+                                N=apply(changeoverall[,5:7],1,mean),
+                                F=apply(changeoverall[,8:10],1,mean),
+                                D=apply(changeoverall[,11:13],1,mean),
+                                row.names=changeoverall$geneID,
+                                splicing.type=rep("SE",nrow(changeoverall))
+                                )
+a=pheatmap::pheatmap(change_division_SE[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           labels_row = change_division_SE$geneID,
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_division_SE)[a$tree_row[["order"]]]
+change_division_SE=change_division_SE[gn,]
+```
+## MXE
+```{r}
+changeoverall=read.csv("mypath/bee/change_new/changeoverallMXE_v3.csv")
+changeoverall=changeoverall[,-1]
+change_division_MXE=data.frame(geneID=changeoverall$geneID,
+                                NE=apply(changeoverall[,2:4],1,mean),
+                                N=apply(changeoverall[,5:7],1,mean),
+                                F=apply(changeoverall[,8:10],1,mean),
+                                D=apply(changeoverall[,11:13],1,mean),
+                                row.names=changeoverall$geneID,
+                                splicing.type=rep("MXE",nrow(changeoverall))
+                                )
+a=pheatmap::pheatmap(change_division_MXE[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           labels_row = change_division_MXE$geneID,
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_division_MXE)[a$tree_row[["order"]]]
+change_division_MXE=change_division_MXE[gn,]
+```
+## RI
+```{r}
+changeoverall=read.csv("mypath/bee/change_new/changeoverallRI_v2.csv")
+#install.packages("Hmisc")
+#library(Hmisc)
+for(i in c(2:nrow(changeoverall))){
+matrix=data.frame(group=t(changeoverall[1,2:13]),Inclevel=t(changeoverall[i,2:13]))
+matrix=as.matrix(matrix)
+test=rcorr(matrix,type="spearman")
+changeoverall[i,20]=test[[1]][2]
+changeoverall[i,21]=test[[3]][2]
+}
+changeoverall=changeoverall[-1,]
+change_division_RI=data.frame(geneID=changeoverall$geneID,
+                                NE=apply(changeoverall[,2:4],1,mean),
+                                N=apply(changeoverall[,5:7],1,mean),
+                                F=apply(changeoverall[,8:10],1,mean),
+                                D=apply(changeoverall[,11:13],1,mean),
+                                row.names=changeoverall$geneID,
+                                splicing.type=rep("RI",nrow(changeoverall))
+                                )
+a=pheatmap::pheatmap(change_division_RI[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           labels_row = change_division_RI$geneID,
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_division_RI)[a$tree_row[["order"]]]
+change_division_RI=change_division_RI[gn,]
+```
+## A3SS
+```{r}
+changeoverall=read.csv("mypath/bee/change_new/changeoverallA3SS_v2.csv")
+#install.packages("Hmisc")
+#library(Hmisc)
+for(i in c(2:nrow(changeoverall))){
+matrix=data.frame(group=t(changeoverall[1,2:13]),Inclevel=t(changeoverall[i,2:13]))
+matrix=as.matrix(matrix)
+test=rcorr(matrix,type="spearman")
+changeoverall[i,20]=test[[1]][2]
+changeoverall[i,21]=test[[3]][2]
+}
+changeoverall=changeoverall[-1,]
+change_division_A3SS=data.frame(geneID=changeoverall$geneID,
+                                NE=apply(changeoverall[,2:4],1,mean),
+                                N=apply(changeoverall[,5:7],1,mean),
+                                F=apply(changeoverall[,8:10],1,mean),
+                                D=apply(changeoverall[,11:13],1,mean),
+                                row.names=changeoverall$geneID,
+                                splicing.type=rep("A3SS",nrow(changeoverall))
+                                )
+a=pheatmap::pheatmap(change_division_A3SS[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           labels_row = change_division_A3SS$geneID,
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_division_A3SS)[a$tree_row[["order"]]]
+change_division_A3SS=change_division_A3SS[gn,]
+```
+## A5SS
+```{r}
+changeoverall=read.csv("mypath/bee/change_new/changeoverallA5SS_v2.csv")
+#install.packages("Hmisc")
+#library(Hmisc)
+for(i in c(2:nrow(changeoverall))){
+matrix=data.frame(group=t(changeoverall[1,2:13]),Inclevel=t(changeoverall[i,2:13]))
+matrix=as.matrix(matrix)
+test=rcorr(matrix,type="spearman")
+changeoverall[i,20]=test[[1]][2]
+changeoverall[i,21]=test[[3]][2]
+}
+changeoverall=changeoverall[-1,]
+change_division_A5SS=data.frame(geneID=changeoverall$geneID,
+                                NE=apply(changeoverall[,2:4],1,mean),
+                                N=apply(changeoverall[,5:7],1,mean),
+                                F=apply(changeoverall[,8:10],1,mean),
+                                D=apply(changeoverall[,11:13],1,mean),
+                                row.names=changeoverall$geneID,
+                                splicing.type=rep("A5SS",nrow(changeoverall))
+                                )
+a=pheatmap::pheatmap(change_division_A5SS[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           labels_row = change_division_A5SS$geneID,
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_division_A5SS)[a$tree_row[["order"]]]
+change_division_A5SS=change_division_A5SS[gn,]
+```
+## Final heatmap 
+```{r}
+
+change_division_heat=rbind(change_division_SE,rbind(change_division_MXE,rbind(change_division_RI,rbind(change_division_A3SS,change_division_A5SS))))
+
+
+change_Inclevel=data.frame(row.names = rownames(change_division_heat),
+                          change_division_heat$splicing.type)
+colnames(change_Inclevel)=c("Splicing.type")
+anncol=list(Splicing.type=c(SE="#E16A86",MXE="#f18800", RI="#e4ce00",A3SS="#9ec417",A5SS="#13a983"))
+
+
+pdf("mypath/bee/figure/figure1overall/A_overall.pdf")
+pheatmap::pheatmap(change_division_heat[,2:5],
+           #cutree_rows=5,
+           cluster_rows = F,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = F, 
+           labels_row = change_division_heat$geneID,
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =45,treeheight_row = 0,
+           border_color = "white",
+           gaps_row = c(288, 379, 405, 448),
+           annotation_row = change_Inclevel,annotation_colors = anncol
+  )
+dev.off()
+```
+
+
+### SE splicing analysis (Figure 3D-F)
+## Spearman correlation analysis
+```{r}
+changeoverall=read.csv("mypath/bee/change_new/changeoverall_v2.csv")
+#install.packages("Hmisc")
+#library(Hmisc)
+for(i in c(2:nrow(changeoverall))){
+matrix=data.frame(group=t(changeoverall[1,2:13]),Inclevel=t(changeoverall[i,2:13]))
+matrix=as.matrix(matrix)
+test=rcorr(matrix,type="spearman")
+changeoverall[i,20]=test[[1]][2]
+changeoverall[i,21]=test[[3]][2]
+}
+write.csv(changeoverall,"mypath/bee/change_new/changeoverall_v3.csv")
+```
+## Plot R-P relationship and cutoff of development-genes and division-genes
+```{r}
+changeoverall2$change = ifelse(changeoverall2$P<0.01,
+                               'Development',
+                               ifelse(abs(changeoverall2$R) < 0.3,'Division','Undefined'))
+ggplot(data=changeoverall2,mapping=aes(x=R,y=-log10(P),color=change))+
+  geom_point(alpha=0.4, size=3.5)+
+  scale_color_manual(values=c("#A0D600FF","#FF6D00FF","#d2dae2"))+
+  geom_vline(xintercept=c(-0.3,0.3),col="red",lwd=0.8,linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01),col="blue",lwd=0.8,linetype = "dashed") +
+  labs(x="R",y="-log10 (P)")+
+  theme_bw()+
+  ggtitle("R--log10(P)")+
+  theme(plot.title = element_text(hjust = 0.5), 
+        legend.position="right", legend.title = element_blank(),panel.grid=element_blank())
+
+dev.off()
+```
+## heatmap of development-genes
+```{r}
+change_development=subset(changeoverall, changeoverall$P < 0.01 )
+change_development=data.frame(row.names=change_development$geneID,
+                                NE=apply(change_development[,2:4],1,mean),
+                                N=apply(change_development[,5:7],1,mean),
+                                F=apply(change_development[,8:10],1,mean),
+                                D=apply(change_development[,11:13],1,mean)
+                                )
+change_development_heat=as.matrix(change_development_heat)
+a=pheatmap(change_development_heat,
+           cutree_rows=2,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = F, 
+           angle_col ="0",
+           treeheight_row = 0,
+  )
+
+markgene=c("LOC409843.4","LOC413994.1","TpnT","TpnT.2","LOC411083")
+j=which(rownames(change_development_heat) %in% markgene)
+a=a+
+  rowAnnotation(markgene = anno_mark(at = which(rownames(change_development_heat) %in% markgene), 
+    labels = rownames(change_development_heat)[j], labels_gp = gpar(fontsize = 10)))
+pdf("mypath/bee/figure/figure1overall/D_development.pdf")
+a
+dev.off()
+```
+## heatmap of division-genes
+```{r}
+change_division=subset(changeoverall,changeoverall$R < 0.3 & changeoverall$R > -0.3)
+change_division_heat=data.frame(row.names=change_division$geneID,
+                                NE=apply(change_division[,2:4],1,mean),
+                                N=apply(change_division[,5:7],1,mean),
+                                F=apply(change_division[,8:10],1,mean),
+                                D=apply(change_division[,11:13],1,mean)
+                                )
+change_division_heat=as.matrix(change_division_heat)
+a=pheatmap(change_division_heat,
+           cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = F, 
+           angle_col ="0",
+           treeheight_row = 0,
+  )
+
+markgene=c("LOC410604","LOC100576895","LOC411723","LOC725834","LOC409554","LOC725179","LOC726582","LOC413438")
+j=which(rownames(change_division_heat) %in% markgene)
+a=a+
+  rowAnnotation(markgene = anno_mark(at = which(rownames(change_division_heat) %in% markgene), 
+    labels = rownames(change_division_heat)[j], labels_gp = gpar(fontsize = 10)))
+
+pdf("mypath/bee/figure/figure1overall/E_division.pdf")
+a
+dev.off()
+```
+
+
+### histgram of isoforms(Figure 4B, 4F and 5B)
+```{r}
+#install.packages("ggsci")
+library(ggsci)
+library(ggplot2)
+pdf("mypath/bee/change_new/ggplotisoform/isoform.pdf")
+
+df=read.csv("mypath/bee/change_new/ggplotisoform/409843.csv")
+my36colors <- c('#E59CC4', '#6778AE','#91D0BE', 
+         '#712820','#B53E2B','#E39A35',   '#DCC1DD', '#CCE0F5', '#CCC9E6', '#625D9E', '#68A180')
+df$isoform=factor(df$isoform, levels = df[1:11,2])
+df$group=factor(df$group,levels=c("NE","N","F","D"))
+ggplot(df,aes(x=group,y=percent,fill=isoform))+geom_bar(stat="identity",position="stack", color="black", width=0.7,size=0.25)+theme_bw()+theme(panel.grid=element_blank())+scale_y_continuous(labels = scales::percent)+ggtitle("LOC409843")+scale_fill_manual(values=rev(my36colors))
+
+df=read.csv("mypath/bee/change_new/ggplotisoform/411083.csv")
+my36colors <- c('#E59CC4', '#6778AE','#91D0BE', 
+         '#712820')
+df$isoform=factor(df$isoform, levels = df[1:4,2])
+df$group=factor(df$group,levels=c("NE","N","F","D"))
+ggplot(df,aes(x=group,y=percent,fill=isoform))+geom_bar(stat="identity",position="stack", color="black", width=0.7,size=0.25)+theme_bw()+theme(panel.grid=element_blank())+scale_y_continuous(labels = scales::percent)+ggtitle("LOC411083")+scale_fill_manual(values=rev(my36colors))
+
+
+df=read.csv("mypath/bee/change_new/ggplotisoform/725834.csv")
+my36colors <- c('#E59CC4', '#6778AE')
+df$isoform=factor(df$isoform, levels = rev(df[1:2,2]))
+df$group=factor(df$group,levels=c("NE","N","F","D"))
+ggplot(df,aes(x=group,y=percent,fill=isoform))+geom_bar(stat="identity",position="stack", color="black", width=0.7,size=0.25)+theme_bw()+theme(panel.grid=element_blank())+scale_y_continuous(labels = scales::percent)+ggtitle("LOC725834")+scale_fill_manual(values=rev(my36colors))
+
+dev.off()
+
+```
+
+
+### rmats2sashimiplot preparation
+```{r}
+a=read.csv("mypath/bee/change_new/a.csv",header = F)
+a=a[,15:20]
+colnames(a)=colnames(N_F_SE_Differ)[6:11]
+rmatsplot=a
+
+## NE-N
+rmatsplot=merge(rmatsplot,NE_N_SE,by=c("exonStart_0base","exonEnd","upstreamES","upstreamEE","downstreamES","downstreamEE"))
+rmatsplot=cbind(rmatsplot[,7:11],cbind(rmatsplot[,1:6],rmatsplot[,12:23]))
+
+rmatsplot$IJC_SAMPLE_1=apply(matrix(as.numeric(unlist(strsplit(as.character(rmatsplot$IJC_SAMPLE_1),','))),ncol=3,byrow=T),1,mean) 
+rmatsplot$SJC_SAMPLE_1=apply(matrix(as.numeric(unlist(strsplit(as.character(rmatsplot$SJC_SAMPLE_1),','))),ncol=3,byrow=T),1,mean) 
+rmatsplot$IJC_SAMPLE_2=apply(matrix(as.numeric(unlist(strsplit(as.character(rmatsplot$IJC_SAMPLE_2),','))),ncol=3,byrow=T),1,mean) 
+rmatsplot$SJC_SAMPLE_2=apply(matrix(as.numeric(unlist(strsplit(as.character(rmatsplot$SJC_SAMPLE_2),','))),ncol=3,byrow=T),1,mean) 
+rmatsplot$IncLevel1=apply(matrix(as.numeric(unlist(strsplit(as.character(rmatsplot$IncLevel1),','))),ncol=3,byrow=T),1,mean) 
+rmatsplot$IncLevel2=apply(matrix(as.numeric(unlist(strsplit(as.character(rmatsplot$IncLevel2),','))),ncol=3,byrow=T),1,mean) 
+
+
+write.table(rmatsplot,"mypath/bee/result/NEN_typical.txt",sep="\t",row.names = FALSE,quote=F)
+  
+## F-D
+rmatsplot=merge(rmatsplot,F_D_SE,by=c("exonStart_0base","exonEnd","upstreamES","upstreamEE","downstreamES","downstreamEE"))
+rmatsplot=cbind(rmatsplot[,7:11],cbind(rmatsplot[,1:6],rmatsplot[,12:23]))
+  
+  
+rmatsplot$IJC_SAMPLE_1=apply(matrix(as.numeric(unlist(strsplit(as.character(rmatsplot$IJC_SAMPLE_1),','))),ncol=3,byrow=T),1,mean) 
+rmatsplot$SJC_SAMPLE_1=apply(matrix(as.numeric(unlist(strsplit(as.character(rmatsplot$SJC_SAMPLE_1),','))),ncol=3,byrow=T),1,mean) 
+rmatsplot$IJC_SAMPLE_2=apply(matrix(as.numeric(unlist(strsplit(as.character(rmatsplot$IJC_SAMPLE_2),','))),ncol=3,byrow=T),1,mean) 
+rmatsplot$SJC_SAMPLE_2=apply(matrix(as.numeric(unlist(strsplit(as.character(rmatsplot$SJC_SAMPLE_2),','))),ncol=3,byrow=T),1,mean) 
+rmatsplot$IncLevel1=apply(matrix(as.numeric(unlist(strsplit(as.character(rmatsplot$IncLevel1),','))),ncol=3,byrow=T),1,mean) 
+rmatsplot$IncLevel2=apply(matrix(as.numeric(unlist(strsplit(as.character(rmatsplot$IncLevel2),','))),ncol=3,byrow=T),1,mean) 
+
+
+  write.table(rmatsplot,"mypath/bee/result/FD_typical.txt",sep="\t",row.names = FALSE,quote=F)
+```
+
+
+### histgram of qPCR (Figure 4D, 4H, 5D, 5H)
+```{r}
+test=read.csv("mypath/bee/change_new/DSEs.csv")
+test$division=c(rep("NE",3),rep("N",3),rep("F",3),rep("D",3))
+a=list()
+
+for (i in 2:5) {
+mean<-aggregate(test[,i],by=list(test$division),FUN=mean)
+sd<-aggregate(test[,i],by=list(test$division),FUN=sd)
+N<-aggregate(test[,i],by=list(test$division),FUN=length)
+name=colnames(test)[i]
+test1=data.frame(mean,sd$x,N$x)
+colnames(test1)=c("Division","mean","sd","N")
+test1$se=test1$sd / sqrt(test1$N)
+
+
+test1$Division=factor(test1$Division,levels=c("NE","N","F","D"))
+
+a[[i]]=ggplot(test1, aes(x=Division, y=mean, fill=Division))+
+      geom_bar(color="black",stat="identity",width=.6)+
+      geom_errorbar(aes(ymin=mean-se, ymax=mean+se),width=.2,position=position_dodge(.6))+
+      theme_bw()+theme(panel.grid=element_blank())+
+      ggtitle(name)+labs(y="Percent of inclusion form")
+
+}
+
+
+pdf("mypath/bee/figure/qpcr_hist.pdf")
+a[[2]]
+a[[3]]
+a[[4]]
+a[[5]]
+
+dev.off()
+
+```
+
+
+### MXE, RI, A3SS, A5SS splicing analysis (Figure S2B-G)
+## MXE
+# spearman analysis and plot
+```{r}
+changeoverall=read.csv("mypath/bee/change_new/changeoverallMXE_v2.csv")
+changeoverall[,1] =make.names(changeoverall[,1],TRUE)
+#install.packages("Hmisc")
+#library(Hmisc)
+for(i in c(2:91)){
+matrix=data.frame(group=t(changeoverall[1,2:13]),Inclevel=t(changeoverall[i,2:13]))
+matrix=as.matrix(matrix)
+test=rcorr(matrix,type="spearman")
+changeoverall[i,22]=test[[1]][2]
+changeoverall[i,23]=test[[3]][2]
+}
+changeoverall2=changeoverall[-1,]
+changeoverall2=changeoverall2[order(changeoverall2$R),]
+changeoverall2$order=c(1:nrow(changeoverall2))
+
+
+
+pdf("mypath/bee/figure/figures2/B_MXE.pdf")
+
+changeoverall2$change = ifelse(changeoverall2$P < 0.01,
+                               'Development',
+                               ifelse(abs(changeoverall2$R) < 0.3,'Division','Undefined'))
+ggplot(data=changeoverall2,mapping=aes(x=R,y=-log10(P),color=change))+
+  geom_point(alpha=0.4, size=3.5)+
+  scale_color_manual(values=c("#A0D600FF","#FF6D00FF","#d2dae2"))+
+  geom_vline(xintercept=c(-0.3,0.3),col="red",lwd=0.8,linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01),col="blue",lwd=0.8,linetype = "dashed") +
+  labs(x="R",y="-log10 (P)")+
+  theme_bw()+
+  ggtitle("R--log10(P)")+
+  theme(plot.title = element_text(hjust = 0.5), 
+        legend.position="right", legend.title = element_blank(),panel.grid=element_blank())
+
+dev.off()
+```
+# development and division analysis
+```{r}
+change_development=subset(changeoverall, changeoverall$P < 0.01 )
+change_development_MXE=data.frame(geneID=change_development$geneID,
+                                NE=apply(change_development[,2:4],1,mean),
+                                N=apply(change_development[,5:7],1,mean),
+                                F=apply(change_development[,8:10],1,mean),
+                                D=apply(change_development[,11:13],1,mean),
+                                row.names=change_development$geneID,
+                                splicing.type=rep("MXE",nrow(change_development))
+                                )
+a=pheatmap::pheatmap(change_development_MXE[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_development_MXE)[a$tree_row[["order"]]]
+change_development_MXE=change_development_MXE[gn,]
+
+
+
+change_division=subset(changeoverall,changeoverall$R < 0.3 & changeoverall$R > -0.3)
+change_division_MXE=data.frame(geneID=change_division$geneID,
+                                NE=apply(change_division[,2:4],1,mean),
+                                N=apply(change_division[,5:7],1,mean),
+                                F=apply(change_division[,8:10],1,mean),
+                                D=apply(change_division[,11:13],1,mean),
+                                row.names=change_division$geneID,
+                                splicing.type=rep("MXE",nrow(change_division))
+                                )
+a=pheatmap::pheatmap(change_division_MXE[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_division_MXE)[a$tree_row[["order"]]]
+change_division_MXE=change_division_MXE[gn,]
+
+```
+
+## RI
+# spearman analysis and plot
+```{r}
+changeoverall=read.csv("mypath/bee/change_new/changeoverallRI_v2.csv")
+#install.packages("Hmisc")
+#library(Hmisc)
+for(i in c(2:nrow(changeoverall))){
+matrix=data.frame(group=t(changeoverall[1,2:13]),Inclevel=t(changeoverall[i,2:13]))
+matrix=as.matrix(matrix)
+test=rcorr(matrix,type="spearman")
+changeoverall[i,20]=test[[1]][2]
+changeoverall[i,21]=test[[3]][2]
+}
+
+changeoverall2=changeoverall[-1,]
+changeoverall2=changeoverall2[order(changeoverall2$R),]
+changeoverall2$order=c(1:nrow(changeoverall2))
+
+
+pdf("mypath/bee/figure/figures2/C_RI.pdf")
+changeoverall2$change = ifelse(changeoverall2$P<0.01,
+                               'Development',
+                               ifelse(abs(changeoverall2$R) < 0.3,'Division','Undefined'))
+ggplot(data=changeoverall2,mapping=aes(x=R,y=-log10(P),color=change))+
+  geom_point(alpha=0.4, size=3.5)+
+  scale_color_manual(values=c("#A0D600FF","#FF6D00FF","#d2dae2"))+
+  geom_vline(xintercept=c(-0.3,0.3),col="red",lwd=0.8,linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01),col="blue",lwd=0.8,linetype = "dashed") +
+  labs(x="R",y="-log10 (P)")+
+  theme_bw()+
+  ggtitle("R--log10(P)")+
+  theme(plot.title = element_text(hjust = 0.5), 
+        legend.position="right", legend.title = element_blank(),panel.grid=element_blank())
+
+dev.off()
+```
+# development and division analysis
+```{r}
+change_development=subset(changeoverall, changeoverall$P < 0.01 )
+change_development_RI=data.frame(geneID=change_development$geneID,
+                                NE=apply(change_development[,2:4],1,mean),
+                                N=apply(change_development[,5:7],1,mean),
+                                F=apply(change_development[,8:10],1,mean),
+                                D=apply(change_development[,11:13],1,mean),
+                                row.names=change_development$geneID,
+                                splicing.type=rep("RI",nrow(change_development))
+                                )
+a=pheatmap::pheatmap(change_development_RI[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_development_RI)[a$tree_row[["order"]]]
+change_development_RI=change_development_RI[gn,]
+
+
+
+change_division=subset(changeoverall,changeoverall$R < 0.3 & changeoverall$R > -0.3)
+change_division_RI=data.frame(geneID=change_division$geneID,
+                                NE=apply(change_division[,2:4],1,mean),
+                                N=apply(change_division[,5:7],1,mean),
+                                F=apply(change_division[,8:10],1,mean),
+                                D=apply(change_division[,11:13],1,mean),
+                                row.names=change_division$geneID,
+                                splicing.type=rep("RI",nrow(change_division))
+                                )
+a=pheatmap::pheatmap(change_division_RI[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_division_RI)[a$tree_row[["order"]]]
+change_division_RI=change_division_RI[gn,]
+
+```
+
+##A3SS
+# spearman analysis and plot
+```{r}
+changeoverall=read.csv("mypath/bee/change_new/changeoverallA3SS_v2.csv")
+#install.packages("Hmisc")
+#library(Hmisc)
+for(i in c(2:nrow(changeoverall))){
+matrix=data.frame(group=t(changeoverall[1,2:13]),Inclevel=t(changeoverall[i,2:13]))
+matrix=as.matrix(matrix)
+test=rcorr(matrix,type="spearman")
+changeoverall[i,20]=test[[1]][2]
+changeoverall[i,21]=test[[3]][2]
+}
+changeoverall2=changeoverall[-1,]
+changeoverall2=changeoverall2[order(changeoverall2$R),]
+changeoverall2$order=c(1:nrow(changeoverall2))
+
+
+
+pdf("mypath/bee/figure/figures2/D_A3SS.pdf")
+changeoverall2$change = ifelse(changeoverall2$P<0.01,
+                               'Development',
+                               ifelse(abs(changeoverall2$R) < 0.3,'Division','Undefined'))
+ggplot(data=changeoverall2,mapping=aes(x=R,y=-log10(P),color=change))+
+  geom_point(alpha=0.4, size=3.5)+
+  scale_color_manual(values=c("#A0D600FF","#FF6D00FF","#d2dae2"))+
+  geom_vline(xintercept=c(-0.3,0.3),col="red",lwd=0.8,linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01),col="blue",lwd=0.8,linetype = "dashed") +
+  labs(x="R",y="-log10 (P)")+
+  theme_bw()+
+  ggtitle("R--log10(P)")+
+  theme(plot.title = element_text(hjust = 0.5), 
+        legend.position="right", legend.title = element_blank(),panel.grid=element_blank())
+
+dev.off()
+```
+# development and division analysis
+```{r}
+change_development=subset(changeoverall, changeoverall$P < 0.01 )
+change_development_A3SS=data.frame(geneID=change_development$geneID,
+                                NE=apply(change_development[,2:4],1,mean),
+                                N=apply(change_development[,5:7],1,mean),
+                                F=apply(change_development[,8:10],1,mean),
+                                D=apply(change_development[,11:13],1,mean),
+                                row.names=change_development$geneID,
+                                splicing.type=rep("A3SS",nrow(change_development))
+                                )
+a=pheatmap::pheatmap(change_development_A3SS[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_development_A3SS)[a$tree_row[["order"]]]
+change_development_A3SS=change_development_A3SS[gn,]
+
+
+
+change_division=subset(changeoverall,changeoverall$R < 0.3 & changeoverall$R > -0.3)
+change_division_A3SS=data.frame(geneID=change_division$geneID,
+                                NE=apply(change_division[,2:4],1,mean),
+                                N=apply(change_division[,5:7],1,mean),
+                                F=apply(change_division[,8:10],1,mean),
+                                D=apply(change_division[,11:13],1,mean),
+                                row.names=change_division$geneID,
+                                splicing.type=rep("A3SS",nrow(change_division))
+                                )
+a=pheatmap::pheatmap(change_division_A3SS[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_division_A3SS)[a$tree_row[["order"]]]
+change_division_A3SS=change_division_A3SS[gn,]
+```
+
+##A5SS
+# spearman analysis and plot
+```{r}
+changeoverall=read.csv("mypath/bee/change_new/changeoverallA5SS_v2.csv")
+#install.packages("Hmisc")
+#library(Hmisc)
+for(i in c(2:nrow(changeoverall))){
+matrix=data.frame(group=t(changeoverall[1,2:13]),Inclevel=t(changeoverall[i,2:13]))
+matrix=as.matrix(matrix)
+test=rcorr(matrix,type="spearman")
+changeoverall[i,20]=test[[1]][2]
+changeoverall[i,21]=test[[3]][2]
+}
+changeoverall2=changeoverall[-1,]
+changeoverall2=changeoverall2[order(changeoverall2$R),]
+changeoverall2$order=c(1:nrow(changeoverall2))
+
+
+pdf("mypath/bee/figure/figures2/E_A5SS.pdf")
+changeoverall2$change = ifelse(changeoverall2$P<0.01,
+                               'Development',
+                               ifelse(abs(changeoverall2$R) < 0.3,'Division','Undefined'))
+ggplot(data=changeoverall2,mapping=aes(x=R,y=-log10(P),color=change))+
+  geom_point(alpha=0.4, size=3.5)+
+  scale_color_manual(values=c("#A0D600FF","#FF6D00FF","#d2dae2"))+
+  geom_vline(xintercept=c(-0.3,0.3),col="red",lwd=0.8,linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01),col="blue",lwd=0.8,linetype = "dashed") +
+  labs(x="R",y="-log10 (P)")+
+  theme_bw()+
+  ggtitle("R--log10(P)")+
+  theme(plot.title = element_text(hjust = 0.5), 
+        legend.position="right", legend.title = element_blank(),panel.grid=element_blank())
+
+dev.off()
+
+```
+# development and division analysis
+```{r}
+change_development=subset(changeoverall, changeoverall$P < 0.01 )
+change_development_A5SS=data.frame(geneID=change_development$geneID,
+                                NE=apply(change_development[,2:4],1,mean),
+                                N=apply(change_development[,5:7],1,mean),
+                                F=apply(change_development[,8:10],1,mean),
+                                D=apply(change_development[,11:13],1,mean),
+                                row.names=change_development$geneID,
+                                splicing.type=rep("A5SS",nrow(change_development))
+                                )
+a=pheatmap::pheatmap(change_development_A5SS[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_development_A5SS)[a$tree_row[["order"]]]
+change_development_A5SS=change_development_A5SS[gn,]
+
+
+
+change_division=subset(changeoverall,changeoverall$R < 0.3 & changeoverall$R > -0.3)
+change_division_A5SS=data.frame(geneID=change_division$geneID,
+                                NE=apply(change_division[,2:4],1,mean),
+                                N=apply(change_division[,5:7],1,mean),
+                                F=apply(change_division[,8:10],1,mean),
+                                D=apply(change_division[,11:13],1,mean),
+                                row.names=change_division$geneID,
+                                splicing.type=rep("A5SS",nrow(change_division))
+                                )
+a=pheatmap::pheatmap(change_division_A5SS[,2:5],#cutree_cols=3,
+           #cutree_rows=3,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =0,treeheight_row = 0,
+           cellheight = 10
+  )
+gn=rownames(change_division_A5SS)[a$tree_row[["order"]]]
+change_division_A5SS=change_division_A5SS[gn,]
+```
+
+## development heatmap
+```{r}
+change_development_heat=rbind(change_development_MXE,rbind(change_development_RI,rbind(change_development_A3SS,change_development_A5SS)))
+
+
+change_Inclevel=data.frame(row.names = rownames(change_development_heat),
+                          change_development_heat$splicing.type)
+colnames(change_Inclevel)=c("Splicing.type")
+anncol=list(Splicing.type=c(MXE="#f18800", RI="#e4ce00",A3SS="#9ec417",A5SS="#13a983"))
+
+
+pdf("mypath/bee/figure/figures2/F_development.pdf")
+pheatmap::pheatmap(change_development_heat[,2:5],
+           #cutree_rows=3,
+           cluster_rows = F,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           labels_row = change_development_heat$geneID,
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =45,treeheight_row = 0,
+           #cellheight = 10,
+           gaps_row = c(37, 42, 54),
+           annotation_row = change_Inclevel,annotation_colors = anncol
+  )
+dev.off()
+```
+
+
+## division heatmap
+```{r}
+change_division_heat=rbind(change_division_MXE,rbind(change_division_RI,rbind(change_division_A3SS,change_division_A5SS)))
+
+# 分类bar
+change_Inclevel=data.frame(row.names = rownames(change_division_heat),
+                          change_division_heat$splicing.type)
+colnames(change_Inclevel)=c("Splicing.type")
+anncol=list(Splicing.type=c(MXE="#f18800", RI="#e4ce00",A3SS="#9ec417",A5SS="#13a983"))
+
+pdf("mypath/bee/figure/figures2/G_division.pdf")
+pheatmap::pheatmap(change_division_heat[,2:5],
+           #cutree_rows=3,
+           cluster_rows = F,
+           cluster_cols = F,scale="row",
+           cellwidth = 30,show_rownames = TRUE, 
+           labels_row = change_division_heat$geneID,
+           #labels_col=c("NE1","N","F","D"),
+           angle_col =45,treeheight_row = 0,
+           cellheight = 10,
+           gaps_row = c(11, 13, 22),
+           annotation_row = change_Inclevel,annotation_colors = anncol
+  )
+dev.off()
+
+
+```
